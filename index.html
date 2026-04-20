@@ -1,0 +1,229 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NL Expense Tracker</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --secondary: #6366f1;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --negative: #ef4444;
+            --positive: #22c55e;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 500px;
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            padding: 24px;
+        }
+
+        header {
+            margin-bottom: 24px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin: 0;
+            color: var(--primary);
+        }
+
+        p.subtitle {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .input-area {
+            margin-bottom: 20px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 100px;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-family: inherit;
+            resize: none;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        button {
+            width: 100%;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--secondary);
+        }
+
+        .transaction-list {
+            margin-top: 30px;
+        }
+
+        .transaction-list h2 {
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #f1f5f9;
+            padding-bottom: 8px;
+        }
+
+        .log-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .log-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .log-memo {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .log-meta {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .log-meta span {
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        .amount-group {
+            text-align: right;
+        }
+
+        .amt-negative {
+            color: var(--negative);
+            font-weight: 700;
+        }
+
+        .amt-positive {
+            color: var(--positive);
+            font-size: 0.7rem;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <header>
+        <h1>Smart Expense Logger</h1>
+        <p class="subtitle">Type naturally to log your spending</p>
+    </header>
+
+    <div class="input-area">
+        <textarea id="nlpInput" placeholder="e.g. $10 sushi UOB Platinum Card under category Food & Drink"></textarea>
+        <button onclick="logTransaction()">Process & Record</button>
+    </div>
+
+    <div class="transaction-list">
+        <h2>Recent Activity</h2>
+        <div id="logs">
+            <!-- Example of how a log looks -->
+            <div class="log-item">
+                <div class="log-details">
+                    <span class="log-memo">Initial Balance</span>
+                    <span class="log-meta">Welcome to your wallet</span>
+                </div>
+                <div class="amount-group">
+                    <span class="amt-positive">System</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function logTransaction() {
+        const input = document.getElementById('nlpInput').value.trim();
+        if (!input) return;
+
+        // --- Basic NLP Extraction Logic ---
+        
+        // 1. Extract Amount ($ followed by numbers)
+        const amountMatch = input.match(/\$\s?(\d+(\.\d{2})?)/);
+        const amount = amountMatch ? amountMatch[1] : "0.00";
+
+        // 2. Extract Category (Search for 'category' or 'under')
+        const catMatch = input.match(/(?:category|under)\s+([\w\s&]+)/i);
+        const category = catMatch ? catMatch[1].trim() : "Uncategorized";
+
+        // 3. Extract Wallet (Look for common keywords or 'Card/Bank')
+        const walletMatch = input.match(/([A-Za-z\s]+(Card|Bank|Wallet|Cash))/i);
+        const wallet = walletMatch ? walletMatch[0].trim() : "Default Wallet";
+
+        // 4. Extract Memo (Usually the words between the price and the wallet/category)
+        // This is a simplified fallback: taking the first word after the $ sign
+        let memo = "Expense";
+        if (amountMatch) {
+            const afterAmount = input.split(amountMatch[0])[1].trim();
+            memo = afterAmount.split(' ')[0] || "Expense";
+        }
+
+        // --- Create UI Element ---
+        const logsContainer = document.getElementById('logs');
+        const item = document.createElement('div');
+        item.className = 'log-item';
+        
+        item.innerHTML = `
+            <div class="log-details">
+                <span class="log-memo">\${memo.charAt(0).toUpperCase() + memo.slice(1)}</span>
+                <span class="log-meta">From: <span>\${wallet}</span> | To: <span>\${category}</span></span>
+            </div>
+            <div class="amount-group">
+                <span class="amt-negative">-$ \${amount}</span>
+                <span class="amt-positive">+\${amount} in \${category}</span>
+            </div>
+        `;
+
+        logsContainer.prepend(item);
+        document.getElementById('nlpInput').value = "";
+    }
+</script>
+
+</body>
+</html>
